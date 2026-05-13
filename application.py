@@ -1,24 +1,110 @@
+import streamlit as st
 from fpdf import FPDF
 import tempfile
 
-pdf = FPDF()
-pdf.add_page()
+st.set_page_config(page_title="AI Resume Builder", layout="centered")
 
-# Add Unicode font
-pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
-pdf.set_font("DejaVu", size=12)
+st.title("🧠 AI Resume Builder")
 
-text = """
-Maanasa G B
-Python Developer
-• AI Projects
-• Resume Builder
-"""
+st.write("Fill in your details and download your resume as a PDF.")
 
-pdf.multi_cell(0, 10, text)
+# -------- Helper Function --------
+# Handles special characters safely
+def clean_text(text):
+    if text:
+        return text.encode("latin-1", "replace").decode("latin-1")
+    return ""
 
-tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+# -------- User Inputs --------
+name = st.text_input("Full Name")
+email = st.text_input("Email")
+phone = st.text_input("Phone Number")
+linkedin = st.text_input("LinkedIn Profile")
 
-pdf.output(tmp_file.name)
+summary = st.text_area("Professional Summary")
 
-print("PDF Generated Successfully")
+skills = st.text_area("Skills (comma separated)")
+
+education = st.text_area("Education")
+
+experience = st.text_area("Work Experience")
+
+projects = st.text_area("Projects")
+
+# -------- Generate Resume --------
+if st.button("Generate Resume PDF"):
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    # Auto page break
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # Title
+    pdf.set_font("Arial", "B", 22)
+    pdf.cell(200, 10, clean_text(name), ln=True, align="C")
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(
+        200,
+        10,
+        clean_text(f"{email} | {phone}"),
+        ln=True,
+        align="C"
+    )
+
+    pdf.cell(
+        200,
+        10,
+        clean_text(linkedin),
+        ln=True,
+        align="C"
+    )
+
+    pdf.ln(10)
+
+    # -------- Section Function --------
+    def section(title, content):
+
+        if content.strip() != "":
+
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(200, 10, clean_text(title), ln=True)
+
+            pdf.set_font("Arial", "", 12)
+
+            pdf.multi_cell(
+                0,
+                8,
+                clean_text(content)
+            )
+
+            pdf.ln(5)
+
+    # -------- Resume Sections --------
+    section("Professional Summary", summary)
+    section("Skills", skills)
+    section("Education", education)
+    section("Work Experience", experience)
+    section("Projects", projects)
+
+    # -------- Save PDF --------
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf"
+    ) as tmp_file:
+
+        pdf.output(tmp_file.name)
+        pdf_path = tmp_file.name
+
+    # -------- Download Button --------
+    with open(pdf_path, "rb") as file:
+
+        st.download_button(
+            label="⬇ Download Resume",
+            data=file,
+            file_name="resume.pdf",
+            mime="application/pdf"
+        )
+
+    st.success("✅ Resume Generated Successfully!")
